@@ -24,6 +24,8 @@ Story telling => prendre un exemple vraiment concret (ex: compte bancaire) Pourq
 
 Applcation bancaire
 
+Before we continue, please note that this tutorial assumes you have a basic understanding of CQRS and event sourcing. If not, kindly find available resources that’ll guide you through and come back here.
+
 # Plan
 
 - Let's build together this architecture
