@@ -30,27 +30,35 @@ Now let's see how to implement it with AWS serverless technologies.
 
 # Plan
 
-- **EVENT DB**
+- **EVENT LEDGER DB**
   - source of truth of your application data in which you store every event that occurs in your account.
   - Use DynamoDB to store credit/debit events
-    - pk=idUser, sk='CreditEvent'|'DebitEvent', amount=number
+    - pk=idUser, sk='CreditEvent'|'DebitEvent', amount=number, version=number
   - Version is useful when updating projections that will be dealt later in the article.
+- **AGGREGATE**
+  - The aggregate takes the list of all arguments pass it to a reducer that outputs the current state in the end
+    - for example
+      - list of events on 3 months
+      - compute total
+      - compute current month
+      - aggregate: { totalBalance: x, currentMonthBalance: y }
+  - You can add new information to the state
+    - for example some business logic might involve you needing the average of income per month
+    - that way you add a computation in the reducer and a new shape of the output
 - **COMMAND**
-  - API Gateway HTTP (simple vs. API Gateway REST qui est plus compliquée et plus chère)
-  - Lmabda that is triggered by http route to store an event in db
+  - API Gateway HTTP => keep it really short like one line
+  - Lambda that is triggered by http route to store an event in db
     - one route/lambda to store a credit event
     - one route/lambda to store a debit event
-- **EDA**
+  - business logic checks done here and need aggregate
+    - for example : you can't be overdrawn which means have less than -500$ which can be checked with the aggregate
+- **EVENT DRIVEN ARCHITECTURE**
   - The pain point to do event sourcing is to have reliable reading data, consistency compared to the source of truth. That's why we use an EDA with a fanout to do so.
   - **FANOUT**
     - Fanout that pushes the event to EventBridge (avoid infinite retries and only 2 lambdas plugged to DynamoDB streams). Dispatch a generic event that contains the payload and the type of it.
   - **DISPATCHER**
     - state carried event
       - compute the aggregate
-        - list of events on 3 months
-        - compute total
-        - compute current month
-        - aggregate: { totalBalance: x, currentMonthBalance: y }
       - extract the type of event to send from the generic event
         - credit or debit
       - create an event according to its type, we attach the aggregate and the payload of the stored event
@@ -60,10 +68,9 @@ Now let's see how to implement it with AWS serverless technologies.
 - **PROJECTION**
   - **DB**
     - need to have read models
-    - DynamoDB to store data projections of a job entity for a view in the application. Need total balance on a page and current month balance on another one of the user profile.
+    - DynamoDB to store data projections of a business entity for a view in the application. Need total balance on a page and current month balance on another one of the user profile.
       - pk: id user / sk: TotalBalanceForProfile / amount: number
       - pk: id user / sk: CurrentMonthBalanceForProfile / amount: number
-    - Use of lastKnownVersion explained later in the Replay section
   - **PROJECTOR**
     - one lambda function that listens to all events that will affect the projection
     - Both TotalBalanceForProfile & CurrentMonthBalanceForProfile depend on credit and debit events.
@@ -72,10 +79,19 @@ Now let's see how to implement it with AWS serverless technologies.
       - extract it from the event coming because the event used are state carried events
     - puts new data
     - code example of the put to update projection with dynamodb toolbox (simplified without the version verification)
-- **REPLAY**
-  - Why replay event version and proj lastKnowVersion
-    - events table needs version
-    - db proj needs lastKnownVersion
+- **PROD PROOF ARCHI**
+  - in production the data in the event ledger needs to remain untouched
+    - new projection or modif projection => not up to date with list of events
+    - need to replay events in a specific order.
+    - event bridge doesn't ensure the order of events incoming
+    - tried several solutions involving setting up huge infrastructures
+    - came to this simple and working solution
+      - with this solution you only have to put an event in the event ledger that is listened by all projections
+      - that way you update every projection (new and modified ones also)
+  - In the projections
+    - need to have lastKnownVersion for the same reason that event bridge doesn't ensure the order of event incoming
+    - you want the last version of the aggregate to be projected
+    - code example with the comparison between version of the aggregate and the lastKnownVersion
   - and that's what makes it prod proof
 - **LIMITS**
 
@@ -86,4 +102,3 @@ Now let's see how to implement it with AWS serverless technologies.
     - have an history of what have been done just to monitor is possible :
       - logs
       - versioning with dynamodb
-  - other limits ??
