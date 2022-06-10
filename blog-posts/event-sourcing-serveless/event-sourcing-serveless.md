@@ -10,50 +10,75 @@ canonical_url:
 
 # Introduction
 
-You surely know git and it might be the best example of event-sourcing project that every developer know of. It stores every modifications you made in your code into events that are called commits, then the developer has access to the whole history of changes. If you want to implement a project that needs to access the history of what happened throughout the life of the user of even the whole application, then you are in the right place ! My 2 years learnings and the serverless paradigm will help you produce the most stable and the less painful solution you can think of.
+You probably use a bank application in your every day life and you wonder how they work. They rely on event sourcing to store their data and they compute the balance of your account from all credit/debit events stored. Numerous applications need to store a trace of all events to keep and use the history. If you have that need and you're thinking about implementing it in serverless, you are in the right place. Thus I want to share with you, 2 years of learnings that will lead you to have the most stable and the less painful solution you can go with.
 
-Compte bancaire => succession d'opérations
+## CQRS and event sourcing
 
-CQRS (Command and Query Responsibility Segregation) is a pattern that separates read and update operations for a data store. It's a good thing to grasp a bit what it is to understand better what will be approached in this article, but don't worry it is not required as it is quite straightforward. Still multiple resources already deal with this topic that you can easily find. Event sourcing is a way to implement the data store in a CQRS pattern.
+CQRS (Command and Query Responsibility Segregation) is a pattern that separates read and update operations for a data store. It's a good thing to grasp a bit what it is to understand better what will be approached in this article, but don't worry it is not required as it is quite straightforward. Still numerous resources already deal with this topic that you can easily look up on the web.
 
-Present a schema of archi with blocks without specifying technologies. Say that we will detail on each part of the architecture and specify the technologies involved.
+Event sourcing is a way to implement the data store in a CQRS pattern interface. There are also a lot of resources on the internet about it if you want to quickly take a look at it before deep diving into our banking application.
 
-Plan : I don't have to split in two the plan because people don't want the path that lead to it but the final result, the answer.
+## What we will build together
 
-Story telling => prendre un exemple vraiment concret (ex: compte bancaire) Pourquoi on a implémenté ça. AUtour du besoin client dire pourquoi on a pris
+Let's build the example of the banking application. We want to store data with the event sourcing pattern to be able to create any data view models from the list of credit/debit events of a user. For reading and writing data, we want to set up a CQRS interface which fits perfectly with the event sourcing data storing system. For now Let's take a look at what the architecture of such an application should look like.
 
-Applcation bancaire
+_insert schema of archi agnostic of technologies_
 
-Before we continue, please note that this tutorial assumes you have a basic understanding of CQRS and event sourcing. If not, kindly find available resources that’ll guide you through and come back here.
+We have two projections, one to get the total balance of your account and one to get the current month balance. The synchronization of the read models with the event table which is the source of truth relies on an Event Driven Architecture. We react to writing events in the event table to trigger updates of the read models.
+
+Now let's see how to implement it with AWS serverless technologies.
 
 # Plan
 
-- Let's build together this architecture
-  - **COMMAND & EVENT DB** : A command equals one lambda that stores an event
-    - store event needs sometimes to have information about the user and as the source of truth id the event DB, you need a method that computes the current data from all events (aggregate) => big reducer
-  - **PROJECTION** : Lambda to project
-    - one lambda per event and that project on every projection (vertical projection) => not a good idea because one lambda does multiple things and you don't take advantage of the event driven architecture because every event is listened by only one lambda
-    - one lambda per projection that listens to all event that contains data used in that projection (horizontal projection) : need to use a big switch to differ the cases. As every event is different your lambda will do only one thing but the complexity of the code of your lambda will be proportional to the number of events that trigger it.
-    - another solution is to have a lambda for every couple couple event/projection. But again there is a pb because the number of lambda allowed in one stack is limited.
-    - Fanout moyen de faire une projection donc irait dans cette partie (à chaque fois il faut qu'il y ait du why => pas d'enum sans histoire)
-  - **FANOUT** : Fanout that pushes the event to EventBridge (avoid infite retries and only 2 lambdas pluged to DynamoDB streams) => event notification. The pain point to do event souring is to have reliable reading data, consistency compared to the source of truth. That's why we use an EDA with a fanout to do so.
-  - **WHY REPLAY** : Architecture looks like _this_ and it works fine.
-    - but you find yourself resetting all data every time you modify or add a projection.
-    - That's one thing you can't do in production
-    - Replay : multiple solutions were tried to tackle this issue
-      - pb of order in event bridge: need last known version
-      - **do i need to present them quickly ?**
-- What about an architecture with stable production, modifications resilient, easier DevX => the dream
-  - **DISPATCHER** : the solution found to solve all previous issues about simplicity and order in replay and about code complexity in projection lambda. Explanations about how it works. => state carried events (vs. notification)
-  - **REPLAY SOLVED** : now two solutions
-    - lambda / step functions => send only last event
-    - event bridge archive
-  - **EASIER DEVX** : projection easy => only one put operation extracting the need information from the aggregate
-    - one lambda per projection
-    - one put identical for every event because based on aggregate spread inside event
-  - **AGGREGATE** : Aggregate concentrate all job logic _(logique métier ?)_
-    - needs to be strongly tested
-- **LIMITS** : Limits of that architecture
+- **EVENT DB**
+  - source of truth of your application data in which you store every event that occurs in your account.
+  - Use DynamoDB to store credit/debit events
+    - pk=idUser, sk='CreditEvent'|'DebitEvent', amount=number
+  - Version is useful when updating projections that will be dealt later in the article.
+- **COMMAND**
+  - API Gateway HTTP (simple vs. API Gateway REST qui est plus compliquée et plus chère)
+  - Lmabda that is triggered by http route to store an event in db
+    - one route/lambda to store a credit event
+    - one route/lambda to store a debit event
+- **EDA**
+  - The pain point to do event sourcing is to have reliable reading data, consistency compared to the source of truth. That's why we use an EDA with a fanout to do so.
+  - **FANOUT**
+    - Fanout that pushes the event to EventBridge (avoid infinite retries and only 2 lambdas plugged to DynamoDB streams). Dispatch a generic event that contains the payload and the type of it.
+  - **DISPATCHER**
+    - state carried event
+      - compute the aggregate
+        - list of events on 3 months
+        - compute total
+        - compute current month
+        - aggregate: { totalBalance: x, currentMonthBalance: y }
+      - extract the type of event to send from the generic event
+        - credit or debit
+      - create an event according to its type, we attach the aggregate and the payload of the stored event
+        - creditEvent with the aggregate computed and the amount of N
+      - dispatch it through event bridge.
+    - projectors listen to events affecting data projected in the view model
+- **PROJECTION**
+  - **DB**
+    - need to have read models
+    - DynamoDB to store data projections of a job entity for a view in the application. Need total balance on a page and current month balance on another one of the user profile.
+      - pk: id user / sk: TotalBalanceForProfile / amount: number
+      - pk: id user / sk: CurrentMonthBalanceForProfile / amount: number
+    - Use of lastKnownVersion explained later in the Replay section
+  - **PROJECTOR**
+    - one lambda function that listens to all events that will affect the projection
+    - Both TotalBalanceForProfile & CurrentMonthBalanceForProfile depend on credit and debit events.
+    - lambda reacts to credit and debit event
+    - most recent data is in aggregate
+      - extract it from the event coming because the event used are state carried events
+    - puts new data
+    - code example of the put to update projection with dynamodb toolbox (simplified without the version verification)
+- **REPLAY**
+  - Why replay event version and proj lastKnowVersion
+    - events table needs version
+    - db proj needs lastKnownVersion
+  - and that's what makes it prod proof
+- **LIMITS**
+
   - A lot of setup
     - not necessary for small applications
   - CRUD is a viable solution
