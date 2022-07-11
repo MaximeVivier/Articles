@@ -35,8 +35,14 @@ Now let's see how to implement it with AWS serverless technologies.
   - Use DynamoDB to store credit/debit events
     - pk=idUser, sk='CreditEvent'|'DebitEvent', amount=number, version=number
   - Version is useful when updating projections that will be dealt later in the article.
+- **COMMAND**
+  - API Gateway HTTP => keep it really short like one line
+  - Lambda that is triggered by http route to store an event in db
+    - one route/lambda to store a credit event
+    - one route/lambda to store a debit event
+  - business logic check => need to have a way to aggregate data => aggregate that we will see in the very next section
 - **AGGREGATE**
-  - The aggregate takes the list of all arguments pass it to a reducer that outputs the current state in the end
+  - The aggregate takes the list of all arguments pass it to a reducer that outputs the current state in the end. Data like it would be stored if it was a crud storage.
     - for example
       - list of events on 3 months
       - compute total
@@ -45,26 +51,7 @@ Now let's see how to implement it with AWS serverless technologies.
   - You can add new information to the state
     - for example some business logic might involve you needing the average of income per month
     - that way you add a computation in the reducer and a new shape of the output
-- **COMMAND**
-  - API Gateway HTTP => keep it really short like one line
-  - Lambda that is triggered by http route to store an event in db
-    - one route/lambda to store a credit event
-    - one route/lambda to store a debit event
-  - business logic checks done here and need aggregate
-    - for example : you can't be overdrawn which means have less than -500$ which can be checked with the aggregate
-- **EVENT DRIVEN ARCHITECTURE**
-  - The pain point to do event sourcing is to have reliable reading data, consistency compared to the source of truth. That's why we use an EDA with a fanout to do so.
-  - **FANOUT**
-    - Fanout that pushes the event to EventBridge (avoid infinite retries and only 2 lambdas plugged to DynamoDB streams). Dispatch a generic event that contains the payload and the type of it.
-  - **DISPATCHER**
-    - state carried event
-      - compute the aggregate
-      - extract the type of event to send from the generic event
-        - credit or debit
-      - create an event according to its type, we attach the aggregate and the payload of the stored event
-        - creditEvent with the aggregate computed and the amount of N
-      - dispatch it through event bridge.
-    - projectors listen to events affecting data projected in the view model
+  - We will see that this is the center of logic of the application => needs to be strongly tested
 - **PROJECTION**
   - **DB**
     - need to have read models
@@ -79,6 +66,20 @@ Now let's see how to implement it with AWS serverless technologies.
       - extract it from the event coming because the event used are state carried events
     - puts new data
     - code example of the put to update projection with dynamodb toolbox (simplified without the version verification)
+    - idempotency of the projection so that if an event occurs more than once, it doesn't cause unwanted side-effects
+- **EVENT DRIVEN ARCHITECTURE**
+  - The pain point to do event sourcing is to have reliable reading data, consistency compared to the source of truth. That's why we use an EDA with a fanout to do so.
+  - **FANOUT**
+    - Fanout that pushes the event to EventBridge (avoid infinite retries and only 2 lambdas plugged to DynamoDB streams). Dispatch a generic event that contains the payload and the type of it.
+  - **DISPATCHER**
+    - state carried event
+      - compute the aggregate
+      - extract the type of event to send from the generic event
+        - credit or debit
+      - create an event according to its type, we attach the aggregate and the payload of the stored event
+        - creditEvent with the aggregate computed and the amount of N
+      - dispatch it through event bridge.
+    - projectors listen to events affecting data projected in the view model
 - **PROD PROOF ARCHI**
   - in production the data in the event ledger needs to remain untouched
     - new projection or modif projection => not up to date with list of events
@@ -92,9 +93,9 @@ Now let's see how to implement it with AWS serverless technologies.
     - need to have lastKnownVersion for the same reason that event bridge doesn't ensure the order of event incoming
     - you want the last version of the aggregate to be projected
     - code example with the comparison between version of the aggregate and the lastKnownVersion
+  - execution time of the step when computing aggregate => need to say that it's not that long
   - and that's what makes it prod proof
 - **LIMITS**
-
   - A lot of setup
     - not necessary for small applications
   - CRUD is a viable solution
