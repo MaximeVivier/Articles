@@ -14,7 +14,7 @@ You probably use a bank application in your every day life and you wonder how th
 
 ## CQRS and event sourcing
 
-CQRS (Command and Query Responsibility Segregation) is a pattern that separates read and update operations for a data store. It's a good thing to grasp a bit what it is to understand better what will be approached in this article, but don't worry it is not required as it is quite straightforward. Still numerous resources already deal with this topic that you can easily look up on the web.
+CQRS (Command and Query Responsibility Segregation) is a pattern that separates read and write operations for a data store. It's a good thing to grasp a bit what it is to understand better what will be approached in this article, but don't worry it is not required as it is quite straightforward. Still numerous resources already deal with this topic that you can easily look up on the web.
 
 Event sourcing is a way to implement the data store in a CQRS pattern interface. There are also a lot of resources on the internet about it if you want to quickly take a look at it before deep diving into our banking application.
 
