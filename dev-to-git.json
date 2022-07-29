@@ -2,5 +2,9 @@
   {
     "id": 1098978,
     "relativePathToArticle": "./blog-posts/my-first-sync-article/my-first-sync-article.md"
+  },
+  {
+    "id": 1147398,
+    "relativePathToArticle": "./blog-posts/event-sourcing-serveless/event-sourcing-serveless.md"
   }
 ]
