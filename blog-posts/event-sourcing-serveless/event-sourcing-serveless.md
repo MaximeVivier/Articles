@@ -1,6 +1,6 @@
 ---
 published: false
-title: 'A prod-proof AWS serverless event-sourcing architecture has never been so simple to implement'
+title: 'A prod-proof event-sourcing architecture has never been so simple to implement in AWS serverless'
 cover_image:
 description: 'Description of the article'
 tags: serverless, eventsourcing, AWS, CQRS
@@ -10,61 +10,69 @@ canonical_url:
 
 # Introduction
 
-You probably use a bank application in your every day life and you wonder how they work. Every credit and debit transaction you make is stored as an event in a data store. This event data store is the source of truth and the current state of your account is computed from all events stored in the datastore. This is known as event sourcing.
+You probably use a bank application in your every day life and you wonder how it works. Every credit and debit transaction made is stored as an **event** in a data store. This event data store is the **source of truth** and the current state of your account is computed from all events stored in the datastore. This is known as **event sourcing**.
 
 <img src="./assets/compute-event-sourcing-state.png" style="display: block; margin: auto" width="200"/>
 
-Numerous applications need to store a trace of all events to use the history or even for legal purposes such as a bank. If you share this need and you're thinking about implementing it in serverless, you are in the right place. Thus I want to share with you, 2 years of learnings that will lead you to have the most stable and the less painful solution you can go with.
+:money_with_wings: Bank applications are not the only type of business requiring to **store a trace of all events** and **use the history** - just to name a few, accounting, medical records, transportation logistics... If you have that need and you're thinking about implementing it in **serverless**, you are in the right place. This article aims at sharing with you **2 years of learnings** :heart_eyes:, saving you the trouble to make the same mistakes I did, and providing you with a guidebook to have the most stable and the least painful solution you can go with. :rocket:
+
+--> Ça te paraît trop loin d'avoir ici ce que je présente dans mon article ? --> Est-ce que ça doit être vraiment au tout début de l'article
 
 ## Event sourcing's best friend interface is CQRS
 
-CQRS (Command and Query Responsibility Segregation) is a pattern that separates read and write operations for a data store solution. In our case the credit and debit events are written into a database different from the database which the data is read from.
+CQRS (**Command** and **Query** Responsibility Segregation) is a pattern that **separates read and write operations** applicable to a data store solution, which is an event sourcing solution in our case. The credit and debit events are written into a database different from the database which the displayed data is read from.
 
 It's a good thing to know CQRS to better grasp what will be approached in this article, but don't worry it is not required. Numerous resources already deal with this topic and you can easily look it up on the web.
 
-## What we will build together
+## What we will build together --> bof c'est pas un how to donc
 
-Let's build the example of the banking application. It needs to display both the balance of your account and the last transaction you made. We will have a much bigger need in reading resources than in writing, therefore CQRS is appropriate for the use case. Moreover, CQRS is the best reading/writing interface for an event sourcing data storing solution. For now let's take a look at what the architecture of such an application should look like.
+Let me show you the example of the banking application. It needs to display both the balance of your account and the last transaction you made. We will have a much bigger need in reading resources than in writing, therefore CQRS is appropriate for the use case. **`WHY CQRS`** Moreover, CQRS is the best reading/writing interface for an event sourcing data storing solution. For now let's take a look at what the architecture of such an application should look like.
 
 <img src="./assets/event-sourcing-x-CQRS-simple-schema.png" style="display: block; margin: auto" width="600"/>
 
-If you are user 2, you see that the application will fetch the total balance of your account from a read model that is called a **projection**. The entity that handles that action is called a query (cQrs). The projection of the balance is computed from the events stored in a database called the **event store**. A data synchronization system must be implemented to have accurate reading data compared to the source of truth. And when you make a transaction, a request is made to a **command** (Cqrs) that will write in the event store the event.
+If you are user 2, you see that the application will fetch the total balance of your account from a read model that is called a **projection**. The entity that handles that action is called a query (cQrs). The projection of the balance is computed from the events stored in a database called the **event store**. A data synchronization system must be implemented to have accurate reading data compared to the source of truth. And when you make a transaction, a request is made to a **command** (Cqrs) that will write the event in the event store.
 
-Now let's see how to implement it with AWS serverless technologies.
+Now let's see what AWS serverless technologies to use to implement it.
+
+> Présentaion de plan
+>
+> Détailler plus les noms des parties pour éviter d'avoir une transition.
+>
+> écrémer les phrases qui n'apportent rien p/r au schema
+>
+> Spot les endroits où il manque du why
+>
+> clean les you et we => les enlever le plus possible
 
 ## Event Store
 
-The source of truth of the application is the event store. All credit and debit events for every user are stored in it. We want a quick to access serverless database, therefore DynamoDB is the most appropriate. We have to define the access pattern to retrieve every events of a user in a chronological order. We can store the number of the event in a field named **version** and put it as `sort key` (SK). To easily retrieve data from a specific user we can use the **id of a user** as a `partition key` (PK). That way we have a composite primary key with the PK and the SK.
+ADR : pourquoi on a choisi DynamoDB pourquoi la version (déjà un peu dit), préciser pourquoi pas timstamp (écriture concurente d'événements)
+
+The source of truth of the application is the event store. All credit and debit events for every user are stored in it. **`WHY DYNAMODB`**. **`WHY ACCESS PATTERN`** We can store the number of the event in a field named **version** and put it as `sort key` (SK). To easily retrieve data from a specific user we can use the **id of a user** as a `partition key` (PK). That way we have a composite primary key with the PK and the SK.
 
 <img src="./assets/event-store-schema.png" style="display: block; margin: auto" width="600"/>
 
-We start building our application. The event store represents its first block, and it contains credit and debit events of every user.
+The event store represents the first block of the application.
 
 <img src="./assets/archi-step-1-event-store.png" style="display: block; margin: auto" height="300"/>
 
-> :face_with_monocle: It is nice to be able to store data, but the question now is how do we store them?
+## A command is the Cqrs tool to write data
 
-## Command
+It's basically a handler that writes an event into the event store when triggered.
 
-We need to fuel this event store with some events. The command, which is the C of CQRS interface, is in charge of this. It's basically a handler that writes an event into the event store when triggered.
-
-Building our architecture we want something to accept HTTP request, so an API Gateway HTTP does the job. Whenever you pay 20$ with your card, a POST request is made to the endpoint <code>account/{accountId}/<b>debit</b></code> with a body `{ amount: 20 }`. Then this triggers a lambda function dedicated to writing **debit events** in the event store, and in this case it writes the event `{ 'accountId': 'abcd1234-user2', 'version': 12, 'eventType': 'Debit', 'amount': 20, 'timestamp': '2022-07-25T20:13Z'}`. According to the same principle, **credit events** are written into the event store.
-
-We now have our writing side with two routes, one for the debit transactions and one for credit transactions. Each route triggers a lambda that writes the event into the event store.
+Our architecture needs to accept HTTP request. API Gateway HTTP is the easiest way to do so in serverless. Whenever you pay 20$ with your card, a POST request is made to the endpoint <code>account/{accountId}/<b>debit</b></code> with a body `{ amount: 20 }`. Then this triggers a lambda function dedicated to writing **debit events** in the event store, and in this case it writes the event `{ 'accountId': 'abcd1234-user2', 'version': 12, 'eventType': 'Debit', 'amount': 20, 'timestamp': '2022-07-25T20:13Z'}`. According to the same principle, **credit events** are written into the event store.
 
 <img src="./assets/archi-step-2-command.png" style="display: block; margin: auto" height="300"/>
 
-But we face an issue here. What happens if you want to buy blue jeans for 100$ but you only have 50$ and considering that we don't accept overdraft? We need **a way to know the current balance of your account** to implement some **business logic** to avoid unauthorized transactions. The computation of the current state of the account in question is called the aggregate.
+But we face an issue here. What happens if you want to buy blue jeans for 100\$ but you only have 50\$ and considering that we don't accept overdraft? We need **a way to know the current balance of your account** to implement some **business logic** to avoid unauthorized transactions. The computation of the current state of the account in question is called the aggregate.
 
 ## Aggregate
 
-You need to remember that the source of truth of your application is the event store. Therefore when you want to make business verifications you have to do it on the event store and not on the projection which is only the read model.
-
-Coming back to the purchase of your 100$ blue jeans, how do we know that you only have 50$ left and that you can't perform this debit transaction only based on former transactions. That's where we build a tool named aggregate to compute the current balance. Before creating an event in the command, we query on the partition key with your id and we get a sorted list of your events based on the version of each one. Then we simply replay every debit and credit event in a reducer and output the total balance of the account. Unfortunately the computation of the balance reveals that you can't afford these blue jeans and we are able to send an error back.
+Be sure to remember that the source of truth of the application is the event store. Therefore business verifications need to be made on the event store and not on the projection which is only the read model. For example if you want to buy blue jeans for 100\$ but you only have 50\$, considering that we don't accept overdraft it should be an unauthorized event. **The aggregate is the way to know the current balance of your account** to implement that kind of **business logic** by computing the current state of the account in question. In our example the balance of the current state is 50\$.
 
 <img src="./assets/aggregate-schema.png" style="display: block; margin: auto" height="150"/>
 
-Likewise, we might need some business verification for the credit transaction. Thus our architecture should include a feedback loop between the command and the event store.
+Before creating an event in the command, the lambda queries DynamoDB on the partition key with your id and gets a sorted list of your events based on the version of each one. Then every debit and credit event are simply replayed in a reducer that outputs the total balance of the account. Unfortunately the computation of the balance reveals that you can't afford these blue.
 
 <img src="./assets/archi-step-3-aggregate.png" style="display: block; margin: auto" height="300"/>
 
