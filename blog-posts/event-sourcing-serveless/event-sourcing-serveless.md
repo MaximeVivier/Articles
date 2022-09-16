@@ -16,7 +16,7 @@ In this article I assume that you have at least a basic knowledge of what is CQR
 
 Let's take the example of a banking application that would need to display both the balance of the account and the last transaction made.
 
-<img src="./assets/ArchiMissingDataSynchro.png" style="display: block; margin: auto" width="1000"/>
+![Logo kumo](./assets/ArchiMissingDataSynchro.png 'Logo Kumo')
 
 This architecture is an implementation of **CQRS interface** for the use case of the bank which has to store all credit and debit events. There are two **commands** writing credit and debit events in an **event ledger**. There are two **queries** that fetch each its associated **projection**, the total balance of the account and the last transaction made.
 
@@ -26,7 +26,7 @@ As you can see, the missing part of the diagram is the synchronization between t
 
 All credit and debit events for every user are stored in the event ledger. The access pattern I chose is the `userId` as the **partition key** and the number of the event also called the `version` as the **sort key**.
 
-<img src="./assets/event-store-schema.png" style="display: block; margin: auto" height="300"/>
+![Logo kumo](./assets/event-store-schema.png 'Logo Kumo')
 
 > :question: Why using a `version` field when we can simply take the `timestamp` to keep track of the order of the events?
 
@@ -49,7 +49,7 @@ For 2 reasons:
 
 The fanout delivers events to one or multiple recipients. By doing so, each projector only needs to listen to events altering the data it's associated to. For example a projector writing user individual information such as the name family name and address doesn't need to be triggered by a credit event.
 
-<img src="./assets/archiWithDispatchAggregate.png" display="block" style="display: block; margin: auto" width="1200"/>
+![Logo kumo](./assets/archiWoDispatchAggregate.png 'Logo Kumo')
 
 ## From a dev reliable architecture to a prod-safe architecture
 
@@ -108,7 +108,7 @@ The trick I came up with is implementing state carried events which means attach
 
 Now projectors have access to the exact value of the projection they each handle and the version of the event it comes from. So it's not necessary to update the projection based on the previous value anymore. The projector can **simply** use the **PutItem** command of DynamoDB to **overwrite the previous** value only if the version incoming is strictly superior to current one stored.
 
-<img src="./assets/archiWithDispatchAggregate.png" display="block" style="display: block; margin: auto" width="1200"/>
+![Logo kumo](./assets/archiWithDispatchAggregate.png 'Logo Kumo')
 
 ## A possible drawback of the dispatchAggregate lambda
 
@@ -116,12 +116,13 @@ I named `dispatchAggregate` the lambda attaching the aggregate to the event. The
 
 The **run time** of the dispatchAggregate lambda with a **cold start** is **250ms** on average and pretty much consistently.
 
-<img src="./assets/dispatchAggregate-cold-start.png" display="block" style="display: block; margin: auto" width="1200"/>
+![Logo kumo](./assets/dispatchAggregate-cold-start.png 'Logo Kumo')
 
 But the **run time** of the same lambda when it's already hot is between **30ms** and **80ms** for the slowest runs, depending on the `userId` in question.
 
-<img src="./assets/dispatchAggregate-30ms.png" display="block" style="display: block; margin: auto" width="1200"/>
-<img src="./assets/dispatchAggregate-80ms.png" display="block" style="display: block; margin: auto" width="1200"/>
+![Logo kumo](./assets/dispatchAggregate-30ms.png 'Logo Kumo')
+
+![Logo kumo](./assets/dispatchAggregate-80ms.png 'Logo Kumo')
 
 The latency is very low in general because there is only one gateway through which the events go, therefore the lambda is hot most of the time.
 
