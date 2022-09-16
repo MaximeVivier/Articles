@@ -1,0 +1,8 @@
+{
+  "userId": "163082d2-b005-75d7-5eb6-aa1f83efd55d",
+  "eventType": "Debit",
+  "payload": {
+    "amount": 30
+  },
+  "version": 3
+}
