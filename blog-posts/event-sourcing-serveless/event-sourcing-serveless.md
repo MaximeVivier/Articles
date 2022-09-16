@@ -26,7 +26,7 @@ As you can see, the missing part of the diagram is the synchronization between t
 
 All credit and debit events for every user are stored in the event ledger. The access pattern I chose is the `userId` as the **partition key** and the number of the event also called the `version` as the **sort key**.
 
-<img src="./assets/event-store-schema.png" style="display: block; margin: auto" height="300"/>
+![Logo kumo](./assets/archiWithDispatchAggregate.png 'Logo Kumo')
 
 > :question: Why using a `version` field when we can simply take the `timestamp` to keep track of the order of the events?
 
