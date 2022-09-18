@@ -8,11 +8,13 @@ series:
 canonical_url:
 ---
 
-:money_with_wings: Bank applications are one of the type of business requiring to **store a trace of all events** and **use the history** - just to name a few, accounting, medical records, transportation logistics... If you you're about to implement a **serverless** architecture for an event sourcing based application, you are in the right place. This article aims at sharing with you **2 years of learnings** :heart_eyes:, saving you the trouble to make the same mistakes I did, and providing you with a guidebook to have the most stable and the least painful solution you can go with. :rocket:
+If you you're about to implement a **serverless** architecture for an event sourcing based application, you are in the right place. This article aims at sharing with you **2 years of learnings** :heart_eyes:, saving you the trouble to make the same mistakes I did, and providing you with a guidebook to have the most stable and the least painful solution you can go with. :rocket:
 
 In this article I assume that you have at least a basic knowledge of what is CQRS. [Here](https://docs.microsoft.com/en-us/azure/architecture/patterns/cqrs) is one excellent page to understand more deeply the ins and outs of CQRS pattern if you feel the need before diving into the interesting things.
 
 ## Quick overview of an event sourcing solution implementing a CQRS interface
+
+:money_with_wings: Bank applications are one of the type of business requiring to **store a trace of all events** and **use the history** - just to name a few, accounting, medical records, transportation logistics...
 
 Let's take the example of a banking application that would need to display both the balance of the account and the last transaction made.
 
@@ -38,7 +40,7 @@ Two commands coming in concurrently will write data based on the same version of
 
 ### A fanout listening to Dynamodb Streams emits the events
 
-The objective here is to react in real time to events written inside the event ledger in order to compute the projections. For that a lambda as a fanout can be used by plugging it to the DynamoDB streams of the event ledger. DynamoDB batches its streams of events in arrays, `INSERT` actions have to be filtered and for each of them an event is published in Amazon EventBridge. And those EventBridge events are the one triggering the lambda that project on the read models.
+The objective here is to react in real time to events written inside the event ledger in order to compute the projections. For that a lambda as a fanout can be used by plugging it to the DynamoDB streams of the event ledger. DynamoDB batches its streams of events in arrays, `INSERT` actions have to be filtered with the filter patterns and for each of them an event is published in Amazon EventBridge. These EventBridge events are those triggering the lambda that project on the read models.
 
 > :question: You may wonder why not directly plug the projector to the streams
 
@@ -47,17 +49,21 @@ For 2 reasons:
 - Stream events that trigger a failing lambda will retry indefinitely until the lambda succeeds. That makes it impossible to have a custom retry policy for events triggering a projector.
 - You can only plug 2 lambda to the streams, and generally application contain more than 2 sets of data to display therefore more than 2 projectors.
 
+Mais en fait maintenant tu n'as plus ces deux limitations => je peux juste mettre un EDIT en mode maintenant vous pouvez racourcir la chaîne
+
 The fanout delivers events to one or multiple recipients. By doing so, each projector only needs to listen to events altering the data it's associated to. For example a projector writing user individual information such as the name family name and address doesn't need to be triggered by a credit event.
 
-![Logo kumo](./assets/archiWoDispatchAggregate.png 'Logo Kumo')
+![Archi without dispatch aggregate](./assets/archiWoDispatchAggregate.png 'Archi without dispatch aggregate')
 
 ## From a dev reliable architecture to a prod-safe architecture
 
-This works fine in dev but not in production yet. With this data synchronization architecture you will face bugs later on. Let me explain :
+This works fine in dev but not in production yet. This data synchronization architecture will face bugs later on. Let me explain :
 
 - When traffic starts to grow, more and more events will flow and one thing EventBridge doesn't ensure is the order of the events sent in the bus event. In order not to overwrite an information with an older one, the last version of event that updated the projection must be kept track of.
 - EventBridge ensures that an event is sent at least once, but it can still be received more than once. So projections need to be idempotent.
-- In dev, when a projection needs to updated or a new one needs to be created, wiping the databases and creating new data is the easy way to go to test this new feature. But in production that is not an option. Projections are made from the succession of all events that happened, that's why the solution is to find a way to replay all events to recreate the projections. Projectors are idempotent and disorder-proof, so they can handle smoothly a replay of all events.
+- In dev, when a projection needs to be updated or a new one needs to be created, wiping the databases and creating new data is the easy way to go to test this new feature. But in production that is not an option. Projections are made from the succession of all events that happened, that's why the solution is to find a way to replay all events to recreate the projections. Projectors are idempotent and disorder-proof, so they can handle smoothly a replay of all events.
+
+## EventBridge Archive, the bogus good idea
 
 > :bulb: EventBridge offers the possibility to replay all events that went through its service. This feature is called EventBridge Archive.
 
@@ -68,13 +74,15 @@ There are 2 main issues with that solution:
 
 > :star2: If you think about it, none of the above problems would be one if only projectors had access to the aggregate when updating a projection.
 
-## A trick to simplify the replay
+## A trick to make data synchronization and replay easier
 
-The aggregate represents the current state of the data at the version of the latest event taken into account. Furthermore, there is no rule about the shape of the aggregate and it can be used in the most exploitable way for this use case, such as direct computing of the projections. If a projector has access to the aggregate, its projection would only have to be updated with the corresponding part of the aggregate if its version is more recent than the version of the current stored projection.
+The trick I came up with is implementing state carried events. Instead of computing the same aggregate in every projector and giving them all access to the event store, the aggregate is computed once and it is attached to the dispatched events. It takes the form of a new Lambda function that takes only one event in argument, computes the aggregate and attaches it to the event before republishing it. I named it `dispatchAggregate`.
 
-The replay would only require to write a `replay` type event in the ledger that would then trigger an EventBridge event listened by all projector in order to update all projections at once. You have to take it into account into your reducer that computes the aggregate to ignore that type of event.
+The fanout still transforms an array of streams to published EventBridge events triggering the dispatchAggregate Lambda. It also has still very low risk of failing by not adding the action of computing the aggregate out of all DynamoDB events.
 
-The trick I came up with is implementing state carried events which means attaching the aggregate to the dispatched events. This is instead of computing it in every projector and giving them all access to the event store. It takes the form of a new Lambda function that takes only one event in argument, computes the aggregate and attaches it to the event before republishing it. The fanout still transforms an array of streams to published EventBridge events and it also has still very low risk of failing by not adding the action of computing the aggregate out of all DynamoDB events.
+![Archi with dispatch aggregate](./assets/archiWithDispatchAggregate.png 'Archi with dispatch aggregate')
+
+This is the EventBridge event such as it is dispatched after the fanout and such as it was listened by projectors before the trick :magic_wand:
 
 ```json
 {
@@ -87,9 +95,12 @@ The trick I came up with is implementing state carried events which means attach
 }
 ```
 
+And this is the shape of the event triggering the projectors that contain the aggregate.
+
 ```json
 {
   "aggregate": {
+    "lastKnownVersion": 3,
     "totalBalance": 500,
     "lastMonthBalance": -20
   },
@@ -104,25 +115,39 @@ The trick I came up with is implementing state carried events which means attach
 }
 ```
 
-## A trick that simplifies also the job of the projectors
+### The job of the projectors become trivial
 
-Now projectors have access to the exact value of the projection they each handle and the version of the event it comes from. So it's not necessary to update the projection based on the previous value anymore. The projector can **simply** use the **PutItem** command of DynamoDB to **overwrite the previous** value only if the version incoming is strictly superior to current one stored.
+The aggregate represents the current state of the data at the version of the latest event taken into account. Furthermore, there is no rule about the shape of the aggregate and it can be customized in the most exploitable way. For this use case, it can be built with keys being all the projections.
 
-![Logo kumo](./assets/archiWithDispatchAggregate.png 'Logo Kumo')
+```json
+{
+  "lastKnownVersion": 3,
+  "totalBalance": 500,
+  "lastMonthBalance": -20
+}
+```
+
+With an access to the aggregate, projectors have at their disposal the exact value of the projection they each handle and the last version of this data. So it's not necessary to update the projection based on the previous value anymore. The projector can **simply** use the **PutItem** command of DynamoDB to **overwrite the previous** value only if the version incoming is strictly superior to current one stored. The projections become idempotent and they allow more flexibility in the way they are triggered.
+
+### The replay is then extremely simple
+
+It's as simple as writing a `replay` type event in the ledger. All projectors need to listen to the corresponding EventBridge event. Then every time a `replay` type event is written in the ledger, all projectors update their projection with their latest version.
+
+> Do not forget to ignore this `replay` type event in the reducer when computing the aggregate
 
 ## A possible drawback of the dispatchAggregate lambda
 
-I named `dispatchAggregate` the lambda attaching the aggregate to the event. The computation time of the dispatchAggregate lambda adds run time to the process. But it is acceptable after checking the results I have on my lambda.
+The computation time of the dispatchAggregate lambda adds run time to the process. But it is acceptable after checking the results I have on my lambda.
 
 The **run time** of the dispatchAggregate lambda with a **cold start** is **250ms** on average and pretty much consistently.
 
-![Logo kumo](./assets/dispatchAggregate-cold-start.png 'Logo Kumo')
+![Dispatch aggregate cold start](./assets/dispatchAggregate-cold-start.png 'Dispatch aggregate cold start')
 
 But the **run time** of the same lambda when it's already hot is between **30ms** and **80ms** for the slowest runs, depending on the `userId` in question.
 
-![Logo kumo](./assets/dispatchAggregate-30ms.png 'Logo Kumo')
+![Dispatch aggregate 30ms](./assets/dispatchAggregate-30ms.png 'Dispatch aggregate 30ms')
 
-![Logo kumo](./assets/dispatchAggregate-80ms.png 'Logo Kumo')
+![Dispatch aggregate 80ms](./assets/dispatchAggregate-80ms.png 'Dispatch aggregate 80ms')
 
 The latency is very low in general because there is only one gateway through which the events go, therefore the lambda is hot most of the time.
 
