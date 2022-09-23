@@ -1,9 +1,9 @@
 ---
 published: false
-title: 'A prod-safe event sourcing architecture has never been so simple to implement in AWS serverless'
+title: 'Serverless event-sourcing with AWS: State of the art data synchronization'
 cover_image:
-description: 'Description of the article'
-tags: serverless, eventsourcing, AWS, CQRS
+description: 'Serverless Event-sourcing event-ledger DynamoDB AWS'
+tags: serverless, eventsourcing, AWS, CQRS,
 series:
 canonical_url:
 ---
