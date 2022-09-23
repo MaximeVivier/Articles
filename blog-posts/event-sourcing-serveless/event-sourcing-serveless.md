@@ -67,7 +67,7 @@ This works fine in dev but not in production yet. This data synchronization arch
 
 > :bulb: EventBridge offers the possibility to replay all events that went through its service. This feature is called EventBridge Archive.
 
-There are 2 main issues with that solution:
+There are [2 main issues with that solution]():
 
 - actually Archive is not 100% accurate and might be incomplete or have a bit more events than what's stored in the event store
 - replaying all events implies a high traffic when having a high number of events
@@ -154,3 +154,15 @@ The latency is very low in general because there is only one gateway through whi
 > The run time topic may become an issue when the **number of events** becomes **enormous**.
 
 For computing the aggregate, **all events** must be **fetched** and reduced within the lambda and it might be really long to handle that much events. But here again, there is a solution. In fact, **snapshots of the aggregate** can be stored in the event ledger. A snapshot representing the aggregate of version N allow **not to worry about events** of versions strictly inferior to N and start from this one when computing the aggregate.
+
+## What's left for me to do to implement the most effective solution with the latest releases
+
+Both the issues I've mentioned about the retry policy of the lambda plugged to the streams and the number of lambda you can plug to a stream is no longer true since this summer 2022.
+
+In terms of efficiency, I still need a single lambda to compute the aggregate since it's time-consuming operation, so the rule of plugging multiple lambda to the streams is not a rule that will change this architecture.
+
+The opportunity here is that I can have the lambda dispatching the events to the projectors failing without worrying about and infinite retry or loosing data. The error handling allows the configuration of destination for failed-events and for a retry policy of my choice. Having both a fanout that must not fail and a dispatchAggregate to compute and attach the aggregate to the event becomes useless. A step can now be skipped by having the dispatchAggregate receiving the DynamoDB streams, computing and attaching the aggregate to the events before publishing them in EventBridge. A retry policy and a destination for failed-events must be configured on this lambda.
+
+![Final archi without fanout](./assets/finalArchiWoFanout.png 'Final archi without fanout')
+
+This should improve the performances and make it the most efficient and up to date solution for synchronizing data between an event ledger and projections in an event sourcing application.
