@@ -61,7 +61,7 @@ This works fine in dev but **not in production yet**. This data synchronization 
 - EventBridge ensures that an **event** is sent at least once, but it can still be **received more than once**. So projections need to be idempotent.
 - In dev, when a **projection** needs to be **updated** or a new one needs to be created, wiping the databases and creating new data is the easy way to go to test this new feature. But in production that is not an option. Projections are made from the succession of all events that happened, that's why the solution is to find a way to **replay** all events to recreate the projections. Projectors are idempotent and disorder-proof, so they can handle smoothly a replay of all events.
 
-## EventBridge Archive, the bogus good idea
+## :unamused: EventBridge Archive, the bogus good idea
 
 > :bulb: EventBridge offers the possibility to replay all events that went through its service. This feature is called **EventBridge Archive**.
 
@@ -72,7 +72,7 @@ There are [2 main issues with that solution](#whats-left-for-me-to-do-to-impleme
 
 > :star2: If you think about it, none of the above problems would be one if only projectors had access to the aggregate when updating a projection.
 
-## A trick to make data synchronization and replay easier
+## :magic_wand: A trick to make data synchronization and replay easier
 
 The trick I came up with is implementing **state carried events**. Instead of computing the same aggregate in every projector and giving them all access to the event ledger, the **aggregate** is **computed once** and it is **attached to the dispatched events**. It takes the form of a new Lambda function that takes only one event in argument, computes the aggregate and attaches it to the event before republishing it. I named it `dispatchAggregate`.
 
@@ -80,7 +80,7 @@ The fanout still transforms an array of streams to published EventBridge events 
 
 ![Archi with dispatch aggregate](./assets/archiWithDispatchAggregate.png 'Archi with dispatch aggregate')
 
-This is the EventBridge event such as it is dispatched after the fanout and such as it was listened by projectors before the trick :magic_wand:
+This is the EventBridge event such as it is dispatched after the fanout and such as it was listened by projectors before the trick.
 
 ```json
 {
@@ -113,7 +113,7 @@ And this is the shape of the event triggering the projectors that contain the ag
 }
 ```
 
-### The job of the projectors become trivial
+### :white_check_mark: The job of the projectors become trivial
 
 The **aggregate** represents the **current state** of the data at the **version** of the **latest event** taken into account. Furthermore, there is no rule about the shape of the aggregate and it can be customized in the most exploitable way. For this use case, it can be built with keys being all the projections.
 
@@ -127,13 +127,13 @@ The **aggregate** represents the **current state** of the data at the **version*
 
 With an access to the aggregate, projectors have at their disposal the **exact value of the projection** they each handle and the last version of this data. So it's not necessary to update the projection based on the previous value anymore. The projector can **simply** use the **PutItem** command of DynamoDB to **overwrite the previous** value only if the version incoming is strictly superior to current one stored. The projections become idempotent and they allow more flexibility in the way they are triggered.
 
-### The replay is then extremely simple
+### :repeat_one: The replay is then extremely simple :ok_hand:
 
 It's as simple as writing a `replay` type event in the ledger. All projectors need to listen to the corresponding EventBridge event. Then every time a `replay` type event is written in the ledger, all projectors update their projection with their latest version.
 
 > :bookmark: Do not forget to ignore this `replay` type event in the reducer when computing the aggregate
 
-## A possible drawback of the dispatchAggregate lambda
+## :mega: A possible drawback of the dispatchAggregate lambda
 
 The computation time of the dispatchAggregate lambda adds run time to the process. But it is acceptable after checking the results I have on my lambda.
 
@@ -153,13 +153,13 @@ The latency is very low in general because there is only one gateway through whi
 
 For computing the aggregate, **all events** must be **fetched** and reduced within the lambda and it might be really long to handle that much events. But here again, there is a solution. In fact, **snapshots of the aggregate** can be stored in the event ledger. A snapshot representing the aggregate of version N allow **not to worry about events** of versions strictly inferior to N and start from this one when computing the aggregate.
 
-## What's left for me to do to implement the most effective solution with the latest releases
+## :chart_with_upwards_trend: What's left for me to do to implement the most effective solution with the latest releases
 
 Both the issues I've mentioned about the retry policy of the lambda plugged to the streams and the number of lambda you can plug to a stream is no longer true since this summer 2022.
 
-In terms of efficiency, I still need a single lambda to compute the aggregate since it's time-consuming operation, so the rule of plugging multiple lambda to the streams is not a rule that will change this architecture.
+In terms of efficiency, I **still need a single lambda** to compute the **aggregate** since it's time-consuming operation, so the rule of plugging multiple lambda to the streams is not a rule that will change this architecture.
 
-The opportunity here is that I can have the lambda dispatching the events to the projectors failing without worrying about and infinite retry or loosing data. The error handling allows the configuration of destination for failed-events and for a retry policy of my choice. Having both a fanout that must not fail and a dispatchAggregate to compute and attach the aggregate to the event becomes useless. A step can now be skipped by having the dispatchAggregate receiving the DynamoDB streams, computing and attaching the aggregate to the events before publishing them in EventBridge. A retry policy and a destination for failed-events must be configured on this lambda.
+The opportunity here is that I can have the lambda dispatching the events to the projectors failing without worrying about and infinite retry or loosing data. The **error handling** allows the configuration of **destination for failed-events** and for a **retry policy of my choice**. Having both a fanout that must not fail and a dispatchAggregate to compute and attach the aggregate to the event becomes useless. A step can now be skipped by having the dispatchAggregate receiving the DynamoDB streams, computing and attaching the aggregate to the events before publishing them in EventBridge. A retry policy and a destination for failed-events must be configured on this lambda.
 
 ![Final archi without fanout](./assets/finalArchiWoFanout.png 'Final archi without fanout')
 
