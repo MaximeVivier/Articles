@@ -67,7 +67,7 @@ This works fine in dev but not in production yet. This data synchronization arch
 
 > :bulb: EventBridge offers the possibility to replay all events that went through its service. This feature is called EventBridge Archive.
 
-There are [2 main issues with that solution]():
+There are [2 main issues with that solution](#whats-left-for-me-to-do-to-implement-the-most-effective-solution-with-the-latest-releases):
 
 - actually Archive is not 100% accurate and might be incomplete or have a bit more events than what's stored in the event store
 - replaying all events implies a high traffic when having a high number of events
