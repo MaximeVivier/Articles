@@ -1,20 +1,20 @@
 ---
 published: false
 title: 'Serverless event-sourcing with AWS: State of the art data synchronization'
-cover_image:
+cover_image: https://raw.githubusercontent.com/MaximeVivier/Articles/master/blog-posts/event-sourcing-serveless/assets/serverless-event-sourcing-with-AWS-state-of-the-art-data-synchronization.png
 description: 'Serverless Event-sourcing event-ledger DynamoDB AWS'
 tags: serverless, eventsourcing, AWS, CQRS,
 series:
 canonical_url:
 ---
 
-If you're about to implement a **serverless** architecture for an event sourcing based application, you are in the right place. This article aims at sharing with you **2 years of learnings** :heart_eyes:, saving you the trouble to make the same mistakes we did at Kumo, and providing you with a guidebook to have the most stable and the least painful solution you can go with. :rocket:
+If you're about to implement a **serverless** architecture for an event sourcing based application, you are in the right place. This article aims at sharing with you **2 years of learnings** :heart_eyes:, saving you the trouble to make the same mistakes we did at Kumo, and providing you with a guidebook to have the **most stable** and the **least painful** solution you can go with. :rocket:
 
 > :books: In this article I assume that you have at least a basic knowledge of what is **CQRS**. [This article is an excellent page to understand more deeply the ins and outs of CQRS pattern](https://docs.microsoft.com/en-us/azure/architecture/patterns/cqrs) if you feel the need before diving into the interesting things.
 
 ## :eyes: Quick overview of an event sourcing solution implementing a CQRS interface
 
-:money_with_wings: Bank applications are one of the type of business requiring to **store a trace of all business events**. These business events are the transactions made on a bank account such as credit and debit actions.
+:money_with_wings: Bank applications are one type of business requiring to **store a trace of all business events**. These business events are the transactions made on a bank account such as credit and debit actions.
 
 Let's take the example of a **banking application** that would need to display both the balance of the account and the last transaction made.
 
@@ -40,6 +40,8 @@ On the other hand, if the **sort key** is the `version` of the event, **one out 
 
 ![Choice of version as SK in event sourcing](./assets/concurrent-events-version-sk-choice-good.png 'Choice of version as SK in event sourcing')
 
+---
+
 ## :point_right: :point_left: How is the synchronization between read and write models ensured ?
 
 > The pain point in CQRS is to have **reliable reading data** compared to the source of truth. Projections need to be updated according to events written in the event ledger.
@@ -50,7 +52,7 @@ The objective here is to **react in real time to events** written inside the eve
 
 > :question: You may wonder why not **directly** plug the **projector** to the streams
 
-[For 3 reasons](#chart_with_upwards_trend-whats-left-for-me-to-do-to-implement-the-most-effective-solution-with-the-latest-releases):
+[For 3 reasons](#chartwithupwardstrend-whats-left-for-us-to-do-to-implement-the-most-effective-solution-with-the-latest-releases):
 
 - Stream events that trigger a failing lambda will retry indefinitely until the lambda succeeds. That makes it **impossible** to have a **custom retry policy** for events triggering a projector.
 - You can only plug **2 lambda maximum** to the streams, and generally application contain more than 2 sets of data to display therefore more than 2 projectors.
@@ -72,21 +74,21 @@ This works fine in dev but **not in production yet**. This data synchronization 
 
 > :bulb: EventBridge offers the possibility to replay all events that went through its service. This feature is called **EventBridge Archive**.
 
-There are 2 main issues with that solution:
+There are 3 main issues with that solution:
 
-- replaying all events implies a **high traffic** when having a high number of events
-- **some events** that are replayed can be **useless**, so that's traffic useless traffic and thus useless run time
-- this leaves **two sources of truth**. And Archive data can't be edited, it is immutable. It can be an issue.
+- Replaying all events implies a **high traffic** when having a high number of events.
+- **Some events** that are replayed can be **useless**, so that's useless traffic and thus useless run time.
+- This leaves **two sources of truth**. And Archive data can't be edited, it is immutable. It can be an issue.
 
 ## :magic_wand: A trick to make data synchronization and replay easier
 
-The best solution would be that every projector has access to the current state of the data every time they need to update their projection. They would all have to fetch all events to compute the aggregate every time an update of the projection would be needed. The same aggregate would be computed across multiple projectors at the same time, which makes this solution not very efficient.
+The best solution would be that **every projector has access to the current state** of the data every time they need to update their projection. They would all have to fetch all events to compute the aggregate every time an update of the projection would be needed. The same aggregate would be computed across multiple projectors at the same time, which makes this solution not very efficient.
 
 > :sunglasses: Unless... !
 
 The trick we came up with at Kumo is implementing **state carried events**. Instead of computing the same aggregate in every projector and giving them all access to the event ledger, the **aggregate** is **computed once** and it is **attached to the dispatched events**. It takes the form of a new Lambda function that takes only one event in argument, computes the aggregate and attaches it to the event before republishing it. We named it `dispatchAggregate`.
 
-The fanout still transforms an array of streams to published EventBridge events triggering the dispatchAggregate Lambda. It also has still very low risk of failing by not adding the action of computing the aggregate out of all DynamoDB events.
+The fanout still transforms an array of streams to published EventBridge events triggering the dispatchAggregate Lambda. It also has still very **low risk of failing** by not adding the action of computing the aggregate out of all DynamoDB events.
 
 ![Data synchronization for CQRS with AWS serverless technologies with aggregate dispatcher](./assets/archiWithDispatchAggregate.png 'Data synchronization for CQRS with AWS serverless technologies with aggregate dispatcher')
 
@@ -163,16 +165,20 @@ The latency is very low in general because there is only one gateway through whi
 
 For computing the aggregate, **all events** must be **fetched** and reduced within the lambda and it might be really long to handle that much events. But here again, there is a solution. In fact, **snapshots of the aggregate** can be stored in the event ledger. A snapshot representing the aggregate of version N allow **not to worry about events** of versions strictly inferior to N and start from this one when computing the aggregate.
 
-## :chart_with_upwards_trend: What's left for me to do to implement the most effective solution with the latest releases
+---
+
+## :chart_with_upwards_trend: What's left for us to do to implement the most effective solution with the latest releases
 
 Both the issues I've mentioned about the retry policy of the lambda plugged to the streams and the number of lambda you can plug to a stream is no longer true since this summer 2022.
 
-In terms of efficiency, We **still need a single lambda** to compute the **aggregate** since it's time-consuming operation, so the rule of plugging multiple lambda to the streams is not a rule that will change this architecture.
+In terms of efficiency, we **still need a single lambda** to compute the **aggregate** since it's time-consuming operation, so the rule of plugging multiple lambda to the streams is not a rule that will change this architecture.
 
 The opportunity here is that we can have the lambda dispatching the events to the projectors failing without worrying about and infinite retry or loosing data. The **error handling** allows the configuration of **destination for failed-events** and for a **retry policy of my choice**. Having both a fanout that must not fail and a dispatchAggregate to compute and attach the aggregate to the event becomes useless. A step can now be skipped by having the dispatchAggregate receiving the DynamoDB streams, computing and attaching the aggregate to the events before publishing them in EventBridge. A retry policy and a destination for failed-events must be configured on this lambda.
 
 ![Data synchronization for CQRS with AWS serverless technologies with aggregate dispatcher](./assets/finalArchiWoFanout.png 'Data synchronization for CQRS with AWS serverless technologies with aggregate dispatcher')
 
-This should make it the most efficient and up to date solution for synchronizing data between an event ledger and projections in an event sourcing application.
+This should make it the **most efficient** and **up to date solution** for **synchronizing data** between an event ledger and projections in an event sourcing application.
 
-- parler de castore
+---
+
+> :gift: We have learned a lot about event-sourcing at Kumo in many projects. We centralized all these learnings in a library: [Castore](https://github.com/castore-dev/castore)
