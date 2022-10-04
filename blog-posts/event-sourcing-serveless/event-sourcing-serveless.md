@@ -1,7 +1,7 @@
 ---
 published: false
-title: 'Serverless event-sourcing with AWS: State of the art data synchronization'
-cover_image: https://raw.githubusercontent.com/MaximeVivier/Articles/master/blog-posts/event-sourcing-serveless/assets/serverless-event-sourcing-with-AWS-state-of-the-art-data-synchronization.png
+title: '👷 Serverless event-sourcing with AWS: State of the art data synchronization ⚡'
+cover_image: https://raw.githubusercontent.com/MaximeVivier/Articles/master/blog-posts/event-sourcing-serveless/assets/serverless-event-sourcing-AWS-state-of-the-art-data-synchronization.png
 description: 'Serverless Event-sourcing event-ledger DynamoDB AWS'
 tags: serverless, eventsourcing, AWS, CQRS,
 series:
@@ -173,7 +173,7 @@ Both the issues I've mentioned about the retry policy of the lambda plugged to t
 
 In terms of efficiency, we **still need a single lambda** to compute the **aggregate** since it's time-consuming operation, so the rule of plugging multiple lambda to the streams is not a rule that will change this architecture.
 
-The opportunity here is that we can have the lambda dispatching the events to the projectors failing without worrying about and infinite retry or loosing data. The **error handling** allows the configuration of **destination for failed-events** and for a **retry policy of my choice**. Having both a fanout that must not fail and a dispatchAggregate to compute and attach the aggregate to the event becomes useless. A step can now be skipped by having the dispatchAggregate receiving the DynamoDB streams, computing and attaching the aggregate to the events before publishing them in EventBridge. A retry policy and a destination for failed-events must be configured on this lambda.
+The opportunity here is that we can have the lambda dispatching the events to the projectors failing without worrying about and infinite retry or loosing data. The **error handling** allows the configuration of **destination for failed-events** and for a **retry policy of my choice**. Having both a fanout that must not fail and a dispatchAggregate to compute and attach the aggregate to the event becomes useless. A step can now be skipped by having the **dispatchAggregate receiving the DynamoDB streams**, computing and attaching the aggregate to the events before publishing them in EventBridge. A **retry policy** and a **destination for failed-events** must be configured on this lambda.
 
 ![Data synchronization for CQRS with AWS serverless technologies with aggregate dispatcher](./assets/finalArchiWoFanout.png 'Data synchronization for CQRS with AWS serverless technologies with aggregate dispatcher')
 
