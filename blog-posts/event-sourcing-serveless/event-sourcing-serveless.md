@@ -1,5 +1,5 @@
 ---
-published: false
+published: true
 title: '👷 Serverless event-sourcing with AWS: State of the art data synchronization ⚡'
 cover_image: https://raw.githubusercontent.com/MaximeVivier/Articles/master/blog-posts/event-sourcing-serveless/assets/serverless-event-sourcing-AWS-state-of-the-art-data-synchronization.png
 description: 'Serverless Event-sourcing event-ledger DynamoDB AWS'
