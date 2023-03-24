@@ -1,6 +1,6 @@
 ---
 published: false
-title: 'It is outrageously easy to have clean logs for your express Step Function with the CDK'
+title: "Stop looking for your express state machine logs, they don't exist"
 description: 'Logs for express Step Function with the CDK'
 tags: logs, stepfunction, serverless, cdk
 series:
@@ -11,7 +11,7 @@ In this article you will learn how to add **logs in an express step function** w
 
 TL;DR
 
-## Standard has logs enabled by default inside AWS Step Function
+## Standard workflows have logs enabled by default inside AWS Step Function
 ### Read this to better grasp what is happening with those log groups in Step Function or skip to the next section for the tutorial you came for
 
 AWS explains it really clearly in its documentation, here is a quote describing the default logs behaviors of both Standard and Express types of State Machine.
@@ -42,9 +42,9 @@ The LogLevel allows you to select what kind of information you want to have. The
 
 But the `includeExecutionData` property of the CDK construct makes all the difference. Thanks to this property set to `true`, you have all step transition data displayed in the Step Function console.
 
-|                                            Express with logs execution data logged                                            |                                                                            Express with logs execution data NOT logged because no includeExecutionData                                                                             |
-| :---------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| ![Express with logs execution data logged](./assets/express-with-logs-exe-logs.png 'Express with logs execution data logged') | ![Express with logs execution data NOT logged because no includeExecutionData](./assets/express-with-logs-but-not-includeExecutionData-exe-logs.png 'Express with logs execution data NOT logged because no includeExecutionData') |
+|                                                                                               Express with NO *logs execution data*                                                                                                |                      Express with *logs execution data* because `includeExecutionData` is set to `true`                       |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------: |
+| ![Express with logs execution data NOT logged because no includeExecutionData](./assets/express-with-logs-but-not-includeExecutionData-exe-logs.png 'Express with logs execution data NOT logged because no includeExecutionData') | ![Express with logs execution data logged](./assets/express-with-logs-exe-logs.png 'Express with logs execution data logged') |
 
 ### How to configure logs in an Express Step Function in CDK
 
@@ -67,7 +67,7 @@ export class ArticleStack extends Stack {
     new StateMachine(this, 'ExpressWithLogs', {
       definition: new Pass(scope, 'ExampleStepForExpressWithLogs', {
         parameters: {
-          tata: 'titi',
+          bar: 'foo',
         },
       }),
       stateMachineType: StateMachineType.EXPRESS,

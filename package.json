@@ -8,7 +8,7 @@
     "prettier": "prettier",
     "embedme": "embedme blog-posts/**/*.md",
     "prettier:write": "prettier . --write",
-    "prettier:check": "prettier . -c --verbose",
+    "prettier:check": "prettier . -c",
     "embedme:check": "yarn embedme --verify",
     "dev-to-git": "dev-to-git"
   },
