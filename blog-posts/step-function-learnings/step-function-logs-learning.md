@@ -1,13 +1,13 @@
 ---
-published: true
-title: 'I answer to your worst step functions pain points'
-description: 'Step Function learnings'
-tags: serverless, stepfunction, dynamodb, javascript
+published: false
+title: 'It is outrageously easy to have clean logs for your express Step Function with the CDK'
+description: 'Logs for express Step Function with the CDK'
+tags: logs, stepfunction, serverless, cdk
 series:
 canonical_url:
 ---
 
-In this article you will learn how to add **logs in an express step function** with the CDK because it is not enabled by default.
+In this article you will learn how to add **logs in an express step function** with the CDK because it is not enabled by default. When you go from a standard step function with logs to an express one that gives you nothing.
 
 TL;DR
 
@@ -67,7 +67,21 @@ export class ArticleStack extends Stack {
 
 For this snippet of code, I used the V2 of the CDK (2.56 to be more precise)
 
+## CDK is your best friend
+
+![CDK is da real MVP](./assets/youDaRealMVP.jpeg 'CDK is da real MVP')
+
 All you need is to create a log group, configure it and then attach it to the State Machine via the logs prop.
+
+The cdk handles all the work of creating the role for the step function to write inside CloudWatch.
+
+The LogLevel allows you to select what kind of information you want to have. The four levels are: `OFF`, `ALL`, `ERROR` and `FATAL`.
+
+But the `includeExecutionData` property of the CDK construct makes all the difference. thanks to this property set to `true`, you have all step transition data displayed in the Step Function console.
+
+|                                            Express with logs execution data logged                                            |                                                                            Express with logs execution data NOT logged because no includeExecutionData                                                                             |
+| :---------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| ![Express with logs execution data logged](./assets/express-with-logs-exe-logs.png 'Express with logs execution data logged') | ![Express with logs execution data NOT logged because no includeExecutionData](./assets/express-with-logs-but-not-includeExecutionData-exe-logs.png 'Express with logs execution data NOT logged because no includeExecutionData') |
 
 ## Conclusion
 
