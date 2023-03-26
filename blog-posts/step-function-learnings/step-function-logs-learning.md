@@ -12,7 +12,7 @@ In this article you will learn how to add **logs in an express step function** w
 TL;DR
 
 ## Standard workflows have logs enabled by default inside AWS Step Function
-### Read this to better grasp what is happening with those log groups in Step Function or skip to the next section for the tutorial you came for
+> :orange_book: Read this to better grasp what is happening with those log groups in Step Function or skip to the next section for the tutorial you came for
 
 AWS explains it really clearly in its documentation, here is a quote describing the default logs behaviors of both Standard and Express types of State Machine.
 
@@ -30,11 +30,11 @@ And the logs available for the Standard type of State Machine are inside the AWS
 
 ![Logs of Standard State Machine is in the AWS Step Function service](./assets/one-log-group.png 'Logs of Standard State Machine is in the AWS Step Function service')
 
-## CDK is your best friend
+## :computer: CDK is your best friend
 
 ![CDK is da real MVP](./assets/youDaRealMVP.jpeg 'CDK is da real MVP')
 
-All you need is to create a log group, configure it and then attach it to the State Machine via the logs prop. If you want to jump directly to the snippet [here](#how-to-configure-logs-in-an-express-step-function-in-cdk) is a shortcut.
+All you need is to create a log group, configure it and then attach it to the State Machine via the logs prop. If you want to jump directly to the snippet [here](#white_check_mark-how-to-configure-logs-in-an-express-step-function-in-cdk) is a shortcut.
 
 The cdk handles all the work of creating the role for the step function to write inside CloudWatch.
 
@@ -42,11 +42,15 @@ The LogLevel allows you to select what kind of information you want to have. The
 
 But the `includeExecutionData` property of the CDK construct makes all the difference. Thanks to this property set to `true`, you have all step transition data displayed in the Step Function console.
 
-|                                                                                               Express with NO *logs execution data*                                                                                                |                      Express with *logs execution data* because `includeExecutionData` is set to `true`                       |
-| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------: |
-| ![Express with logs execution data NOT logged because no includeExecutionData](./assets/express-with-logs-but-not-includeExecutionData-exe-logs.png 'Express with logs execution data NOT logged because no includeExecutionData') | ![Express with logs execution data logged](./assets/express-with-logs-exe-logs.png 'Express with logs execution data logged') |
+Express with NO *logs execution data*
 
-### How to configure logs in an Express Step Function in CDK
+![Express with NO logs execution data](./assets/express-with-logs-but-not-includeExecutionData-exe-logs.png 'Express with NO logs execution data')
+
+Express with *logs execution data* because `includeExecutionData` is set to `true`
+
+![Express with logs execution data because includeExecutionData is set to true](./assets/express-with-logs-exe-logs.png 'Express with logs execution data because includeExecutionData is set to true')
+
+### :white_check_mark: How to configure logs in an Express Step Function in CDK
 
 This is pretty easy and straightforward but you just need to know it.
 
