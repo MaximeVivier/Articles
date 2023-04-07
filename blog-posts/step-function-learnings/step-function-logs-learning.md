@@ -48,21 +48,21 @@ export class ArticleStack extends Stack {
 ---
 
 ## :bulb: Standard workflows have logs enabled by default inside AWS Step Functions
-> :orange_book: Read this to better grasp what is happening with these log groups in Step Function or skip to the next section for the tutorial you came for
+> :orange_book: Read this to better grasp what is happening with these log groups in Step Function or skip to the [next section](#tuto-part) for the tutorial you came for
 
 AWS explains it really clearly in its [documentation](https://docs.aws.amazon.com/step-functions/latest/dg/cw-logs.html), here is a quote describing the default logs behaviors of both Standard and Express types of State Machine.
 
->Standard Workflows record execution history in AWS Step Functions, although you can optionally configure logging to Amazon CloudWatch Logs.
+>**Standard Workflows** record execution history **in AWS Step Functions**, although you can optionally configure logging to Amazon CloudWatch Logs.
 >
->Unlike Standard Workflows, Express Workflows don't record execution history in AWS Step Functions. To see execution history and results for an Express Workflow, you must configure logging to Amazon CloudWatch Logs. Publishing logs doesn't block or slow down executions.
+>Unlike Standard Workflows, **Express Workflows don't record execution history in AWS Step Functions**. To see execution history and results for an Express Workflow, you must **configure logging to Amazon CloudWatch Logs**. Publishing logs doesn't block or slow down executions.
 
-The following images show three different State Machines: one Express configured with logs, one Express configured without logs and one Standard. The only one that has a log group associated is the Express one configured with a log group.
+The following images show three different State Machines: one **Express configured with logs**, one **Express configured without logs** and one **Standard**. The only one that has a log group associated is the Express one configured with a log group.
 
 ![Three types of state machine](./assets/three-types-of-state-machine.png 'Three types of state machine')
 
 ![One log group associated to one of the Express workflow](./assets/one-log-group.png 'One log group associated to one of the Express workflow')
 
-And the logs available for the Standard type of State Machine are inside the AWS Step Functions service but there is no log group associated.
+The logs available for the Standard workflow are inside the AWS Step Functions service but there is no log group associated.
 
 ![Logs of Standard State Machine is in the AWS Step Function service](./assets/logs-for-standard-step-func.png 'Logs of Standard State Machine is in the AWS Step Function service')
 
@@ -70,9 +70,9 @@ And the logs available for the Standard type of State Machine are inside the AWS
 
 ![CDK is da real MVP](./assets/youDaRealMVP.jpeg 'CDK is da real MVP')
 
-All you need is to create a log group, configure it and then attach it to the State Machine via the logs prop. If you want to jump directly to the snippet [here](#white_check_mark-how-to-configure-logs-in-an-express-state-machine-in-cdk) is a shortcut.
+All you need is to create a **log group**, configure it and then **attach it to the State Machine** via the logs prop. If you want to jump directly to the snippet [here](#tuto-part) is a shortcut.
 
-The CDK handles all the work of creating the role for the State Machine to write inside CloudWatch.
+The **CDK handles all the work** of creating the role for the State Machine to write inside CloudWatch.
 
 The LogLevel allows you to select what kind of information you want to have. The four levels are: `OFF`, `ALL`, `ERROR` and `FATAL`. It is recommended by AWS to choose `ALL` because to have logs of all executions and not only the failed ones in this [documentation](https://docs.aws.amazon.com/step-functions/latest/dg/diff-standard-express-exec-details-ui.html#exp-wf-exec-limitation-details-log-dependent-test).
 
@@ -86,9 +86,9 @@ Express with *logs execution data* because `includeExecutionData` is set to `tru
 
 ![Express with logs execution data because includeExecutionData is set to true](./assets/express-with-logs-exe-logs.png 'Express with logs execution data because includeExecutionData is set to true')
 
-### :white_check_mark: How to configure logs in an Express workflow in CDK
+### <a id="tuto-part"></a>:white_check_mark: How to configure logs in an Express workflow in CDK
 
-Here is the snippet of code that you need to make it happen. 🧑‍💻
+Here is the **snippet** of code that you need to **make it happen**. 🧑‍💻
 
 ```ts
 import { App, RemovalPolicy, Stack } from 'aws-cdk-lib';
@@ -121,7 +121,7 @@ export class ArticleStack extends Stack {
 }
 ```
 
-For this snippet of code, I used the V2 of the CDK (2.56 to be more precise)
+For this snippet of code, I used the **V2** of the **CDK** (2.56 to be more precise)
 
 ## Conclusion
 
