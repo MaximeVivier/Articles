@@ -45,6 +45,8 @@ export class ArticleStack extends Stack {
 }
 ```
 
+---
+
 ## :bulb: Standard workflows have logs enabled by default inside AWS Step Functions
 > :orange_book: Read this to better grasp what is happening with these log groups in Step Function or skip to the next section for the tutorial you came for
 
