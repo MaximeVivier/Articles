@@ -64,7 +64,7 @@ The following images show three different State Machines: one **Express configur
 
 The logs available for the Standard workflow are inside the AWS Step Functions service but there is no log group associated.
 
-![Logs of Standard State Machine is in the AWS Step Function service](./assets/logs-for-standard-step-func.png 'Logs of Standard State Machine is in the AWS Step Function service')
+![Logs of Standard State Machine is in the AWS Step Function service](./assets/logs-for-standard-workflow.png 'Logs of Standard State Machine is in the AWS Step Function service')
 
 ## :computer: CDK is your best friend
 
@@ -80,11 +80,11 @@ But the `includeExecutionData` property of the CDK construct makes all the diffe
 
 Express with NO *logs execution data*
 
-![Express with NO logs execution data](./assets/express-with-logs-but-not-includeExecutionData-exe-logs.png 'Express with NO logs execution data')
+![Express with NO logs execution data](./assets/express-with-logs-but-not-includeExecutionData-exec-logs.png 'Express with NO logs execution data')
 
 Express with *logs execution data* because `includeExecutionData` is set to `true`
 
-![Express with logs execution data because includeExecutionData is set to true](./assets/express-with-logs-exe-logs.png 'Express with logs execution data because includeExecutionData is set to true')
+![Express with logs execution data because includeExecutionData is set to true](./assets/express-with-logs-exec-logs.png 'Express with logs execution data because includeExecutionData is set to true')
 
 ### <a id="tuto-part"></a>:white_check_mark: How to configure logs in an Express workflow in CDK
 
