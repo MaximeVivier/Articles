@@ -47,7 +47,7 @@ export class ArticleStack extends Stack {
 
 ---
 
-## :bulb: Standard workflows have logs enabled by default inside AWS Step Functions
+## Standard workflows have logs enabled by default inside AWS Step Functions :bulb:
 > :orange_book: Read this to better grasp what is happening with these log groups in Step Function or skip to the [next section](#tuto-part) for the tutorial you came for
 
 AWS explains it really clearly in its [documentation](https://docs.aws.amazon.com/step-functions/latest/dg/cw-logs.html), here is a quote describing the default logs behaviors of both Standard and Express types of State Machine.
@@ -66,7 +66,7 @@ The logs available for the Standard workflow are inside the AWS Step Functions s
 
 ![Logs of Standard State Machine is in the AWS Step Function service](./assets/logs-for-standard-workflow.png 'Logs of Standard State Machine is in the AWS Step Function service')
 
-## :computer: CDK is your best friend
+## CDK is your best friend :computer:
 
 ![CDK is da real MVP](./assets/youDaRealMVP.jpeg 'CDK is da real MVP')
 
@@ -86,7 +86,7 @@ Express with *logs execution data* because `includeExecutionData` is set to `tru
 
 ![Express with logs execution data because includeExecutionData is set to true](./assets/express-with-logs-exec-logs.png 'Express with logs execution data because includeExecutionData is set to true')
 
-### <a id="tuto-part"></a>:white_check_mark: How to configure logs in an Express workflow in CDK
+### How to configure logs in an Express workflow in CDK :white_check_mark:<a id="tuto-part"></a>
 
 Here is the **snippet** of code that you need to **make it happen**. 🧑‍💻
 
