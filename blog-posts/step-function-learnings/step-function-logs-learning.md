@@ -1,5 +1,5 @@
 ---
-published: false
+published: true
 title: "No execution logs on AWS Express workflow? 🤔 📖"
 cover_image: https://raw.githubusercontent.com/MaximeVivier/Articles/master/blog-posts/step-function-learnings/assets/banner.png
 description: 'How to have logs for an Express Workflows on AWS Step Functions with the CDK'
