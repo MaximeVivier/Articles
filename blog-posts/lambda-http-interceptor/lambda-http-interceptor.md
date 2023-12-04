@@ -1,6 +1,6 @@
 ---
 published: false
-title: 'PLACEholder'
+title: ':fusée: Lambda Test Revolution: Master Mocking & Slash Costs with HTTP-Interceptor!'
 cover_image: 
 description: ''
 tags: 
@@ -12,7 +12,7 @@ canonical_url:
 
 Learn how to perform integration tests iso prod with aws serverless services. Using lambda-http-interceptor you can easily intercept and mock http calls coming from your deployed lambda functions.
 
-**Why should you use:**
+**Why should you use it:**
 - You want to test your lambda functions in a iso-prod environment
 - You want to save money while running integration tests by not triggering costly third party APIs
 - You want to control the behavior of third party APIs to test edge cases
@@ -127,7 +127,9 @@ If you want to deep dive the functioning of the interceptor, you can check out [
 
 ## lambda-http-interceptor has everything built in
 
-The setup is fairly easy and it can be used to make assertions on the calls made by your deployed lambda functions. The documentation is far more exhaustive to get you started.
+The setup is fairly easy and it can be used to make assertions on the calls made by your deployed lambda functions. And you don't edit the code of your lambda handler.
+
+The documentation on github is far more exhaustive to get you started.
 
 {% cta https://github.com/MaximeVivier/lambda-http-interceptor %} Try lambda-http-interceptor here 😉 {% endcta %}
 
