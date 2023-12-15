@@ -6,5 +6,13 @@
   {
     "id": 1147398,
     "relativePathToArticle": "./blog-posts/event-sourcing-serveless/event-sourcing-serveless.md"
+  },
+  {
+    "id": 1413847,
+    "relativePathToArticle": "./blog-posts/step-function-learnings/step-function-logs-learning.md"
+  },
+  {
+    "id": 1685247,
+    "relativePathToArticle": "./blog-posts/lambda-http-interceptor/lambda-http-interceptor.md"
   }
 ]
