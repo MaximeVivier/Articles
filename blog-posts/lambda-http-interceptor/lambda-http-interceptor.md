@@ -8,21 +8,21 @@ series:
 canonical_url:
 ---
 
-## TL;DR
+## TL;DR 📰
 
 Learn how to perform integration tests iso prod with aws serverless services. Using lambda-http-interceptor you can easily intercept and mock http calls coming from your deployed lambda functions.
 
 **Why should you use it:**
-- You want to test your lambda functions in a iso-prod environment
-- You want to save money while running integration tests by not triggering costly third party APIs
-- You want to control the behavior of third party APIs to test edge cases
-- You don't want to change your lambda code to make it testable
+- You want to test your lambda functions in a iso-prod environment 🧪
+- You want to save money while running integration tests by not triggering costly third party APIs 💸
+- You want to control the behavior of third party APIs to test edge cases 🎯
+- You don't want to change your lambda code to make it testable 👷
 
 And maybe you can use it for all theses reasons at the same time!
 
 {% cta https://github.com/MaximeVivier/lambda-http-interceptor %} Try lambda-http-interceptor here 😉 {% endcta %}
 
-##  Intercept http calls in lambda functions
+##  Intercept http calls in lambda functions 🪝
 
 The lib is made of a CDK Construct to instantiate in your stack.
 
@@ -105,17 +105,17 @@ describe("my test", () => {
 });
 ```
 
-## How does it work?
+## How does it work? 📚
 
-### lambda-http-interceptor stores the configurations and the call made in DynamoDB table
+### lambda-http-interceptor stores the configurations and the call made in DynamoDB table 🏪
 
 The `HttpInterceptor` instantiates a DynamoDB table in the stack. The table is used to store the configurations of the http calls to intercept. When performing integration tests, filling up the table with configuration is done using the `createConfigs` method of the `HttpLambdaInterceptorClient` class.
 
 Then assertions can be made on the calls made by the lambda after they are fetched using the `pollInterceptedCalls` method of the `HttpLambdaInterceptorClient` class.
 
-> Don't forget to give the user you're using to perform the integration tests the right to read in the table. In general, we use AdministratorAccess role for the user performing these tasks.
+> 💡 Don't forget to give the user you're using to perform the integration tests the right to read in the table. In general, we use AdministratorAccess role for the user performing these tasks.
 
-### lambda-http-interceptor uses an internal extension to intercept http calls in lambda functions
+### lambda-http-interceptor uses an internal extension to intercept http calls in lambda functions 📡
 
 The internal extension that the interceptor deploys on the lambda functions overrides the `http` module of nodejs that is used to make http calls.
 
@@ -125,7 +125,7 @@ It keeps track of the http calls listed that are listed in the configuration. If
 
 If you want to deep dive the functioning of the interceptor, you can check out [this article](https://dev.to/slsbytheodo/power-up-your-serverless-application-with-aws-lambda-extensions-3a31) that presents extensions really clearly using a simple example.
 
-## lambda-http-interceptor has everything built in
+## lambda-http-interceptor has everything built in 💪
 
 The setup is fairly easy and it can be used to make assertions on the calls made by your deployed lambda functions. And you don't edit the code of your lambda handler.
 
