@@ -1,6 +1,6 @@
 ---
 published: false
-title: ':fusée: Lambda Test Revolution: Master Mocking & Slash Costs with HTTP-Interceptor!'
+title: '🚀 Lambda Test Revolution: Master Mocking & Slash Costs with HTTP-Interceptor!'
 cover_image: https://raw.githubusercontent.com/MaximeVivier/Articles/master/blog-posts/lambda-http-interceptor/banner.png
 description: 'Serverless lambda integration tests http intercept mock'
 tags: serverless, lambda, integrationtests, AWS,
